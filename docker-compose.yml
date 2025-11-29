@@ -1,43 +1,45 @@
-version: '3.4'
+version: "3.8"
  
 services:
-  springboot-service:
-    image: shamkumbhar47/backend:githubactionb
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-service:3306/hrmsportal
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
-    ports:
-      - "8080:8080"
-    depends_on:
-      - mysql-service
-    networks:
-      - mynetwork
-   
-  frontend:
-    image: shamkumbhar47/frontend:hrmstej04
-    ports:
-      - "4200:80"
-    depends_on:
-      - mysql-service
-    networks:
-      - mynetwork
- 
-  mysql-service:
+  mysql-db:
     image: mysql:8.0
+    container_name: mysql-db
+    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "hrmsportal"
-      MYSQL_PASSWORD: "root"
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: pipdb
+      MYSQL_USER: pipuser
+      MYSQL_PASSWORD: pip123
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-    networks:
-      - mynetwork
-    
-networks:
-  mynetwork:
-
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+ 
+  springboot-service:
+    image: hrmsbackend:v1
+    restart: always
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/pipdb
+      SPRING_DATASOURCE_USERNAME: pipuser
+      SPRING_DATASOURCE_PASSWORD: pip123
+    ports:
+      - "8080:8080"
+ 
+  frontend:
+    image: hrmsfrontend:v1
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - springboot-service
+ 
 volumes:
   mysql-data:
